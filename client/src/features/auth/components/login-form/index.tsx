@@ -5,9 +5,8 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
+import { useLocation } from 'react-router';
 import { getErrorMessage, getErrorStatus, getFieldErrors } from '@/shared/api/errors';
-import { paths } from '@/shared/config/paths';
 import { PasswordField } from '../PasswordField';
 import { LoginFormSchema, type LoginFormValues } from './config';
 import { useLogin } from '../../hooks/useLogin';
@@ -17,8 +16,9 @@ const isFormField = (key: string): key is (typeof formFields)[number] =>
   (formFields as readonly string[]).includes(key);
 
 export function LoginForm() {
-  const navigate = useNavigate();
   const loginMutation = useLogin();
+  // Set by RegisterForm after a successful sign-up
+  const registeredEmail = (useLocation().state as { registeredEmail?: string } | null)?.registeredEmail;
   const {
     register,
     handleSubmit,
@@ -27,13 +27,13 @@ export function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(LoginFormSchema),
     mode: 'onTouched',
+    defaultValues: { email: registeredEmail ?? '' },
   });
 
   const onSubmit = handleSubmit(({  email, password }) => {
     loginMutation.mutate(
       { email, password },
       {
-        onSuccess: () => navigate(paths.dashboard, { replace: true }),
         onError: (err) => {
           const status = getErrorStatus(err);
           if (status === 409) {
@@ -55,13 +55,17 @@ export function LoginForm() {
 
   return (
     <Stack component="form" spacing={2} noValidate onSubmit={onSubmit}>
+      {registeredEmail && !loginMutation.isError && (
+        <Alert severity="success">Account created. Sign in to continue.</Alert>
+      )}
       {showAlert && <Alert severity="error">{getErrorMessage(loginMutation.error)}</Alert>}
-      
+
       <TextField
         {...register('email')}
         label="Email"
         type="email"
         autoComplete="email"
+        autoFocus={!registeredEmail}
         fullWidth
         error={Boolean(errors.email)}
         helperText={errors.email?.message}
@@ -69,7 +73,8 @@ export function LoginForm() {
       <PasswordField
         {...register('password')}
         label="Password"
-        autoComplete="new-password"
+        autoComplete="current-password"
+        autoFocus={Boolean(registeredEmail)}
         fullWidth
         error={Boolean(errors.password)}
         helperText={errors.password?.message}

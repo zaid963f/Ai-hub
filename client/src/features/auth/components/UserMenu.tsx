@@ -18,9 +18,8 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { useNavigate } from 'react-router';
 import { paths } from '@/shared/config/paths';
 import { useSideNav } from '@/shared/layout';
-
-// TODO(Phase 3): read the signed-in user from the auth store
-const user = { name: 'Ada Lovelace', email: 'ada@example.com' };
+import { useAuthStore } from '@/shared/stores/auth.store';
+import { getInitials } from '@/shared/utils/initials';
 
 const themeOptions = [
   { value: 'light', label: 'Light', icon: LightModeRoundedIcon },
@@ -34,14 +33,11 @@ export function UserMenu() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const { mode, setMode } = useColorScheme();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
   const open = Boolean(anchorEl);
 
-  const initials = user.name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  // SessionGate fills the user; it can still be null for a session persisted by an older build
+  const initials = user ? getInitials(user.name) : '?';
 
   const close = () => setAnchorEl(null);
   const goTo = (to: string) => {
@@ -56,16 +52,17 @@ export function UserMenu() {
         aria-label="Open user menu"
         aria-haspopup="menu"
         aria-expanded={open}
+        title={user?.email}
         onClick={(event) => setAnchorEl(event.currentTarget)}
         sx={{ borderRadius: 2, gap: 1.5, px: 1, justifyContent: collapsed ? 'center' : 'flex-start' }}
       >
-        <Avatar sx={{ width: 32, height: 32, fontSize: 14, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+        <Avatar aria-hidden sx={{ width: 32, height: 32, fontSize: 14, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
           {initials}
         </Avatar>
         {!collapsed && (
           <ListItemText
-            primary={user.name}
-            secondary={user.email}
+            primary={user?.name}
+            secondary={user?.email}
             slotProps={{
               primary: { variant: 'body2', noWrap: true },
               secondary: { variant: 'caption', noWrap: true },

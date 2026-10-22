@@ -5,7 +5,7 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { getErrorMessage, getErrorStatus, getFieldErrors } from '@/shared/api/errors';
 import { paths } from '@/shared/config/paths';
 import { useRegister } from '../../hooks/useRegister';
@@ -17,8 +17,9 @@ const isFormField = (key: string): key is (typeof formFields)[number] =>
   (formFields as readonly string[]).includes(key);
 
 export function RegisterForm() {
-  const navigate = useNavigate();
   const registerMutation = useRegister();
+  const navigate = useNavigate();
+  const { search } = useLocation();
   const {
     register,
     handleSubmit,
@@ -33,7 +34,8 @@ export function RegisterForm() {
     registerMutation.mutate(
       { name, email, password },
       {
-        onSuccess: () => navigate(paths.dashboard, { replace: true }),
+        // No session yet: send them to sign in, keeping any ?redirect= and prefilling the email
+        onSuccess: () => navigate(`${paths.login}${search}`, { state: { registeredEmail: email } }),
         onError: (err) => {
           const status = getErrorStatus(err);
           if (status === 409) {
